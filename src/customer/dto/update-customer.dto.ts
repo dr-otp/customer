@@ -1,6 +1,8 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateCustomerDto } from './create-customer.dto';
+import { IsCuid } from 'src/common';
 
 export class UpdateCustomerDto extends PartialType(CreateCustomerDto) {
-  id: number;
+  @IsCuid()
+  id: string;
 }

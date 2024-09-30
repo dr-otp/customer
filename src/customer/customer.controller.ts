@@ -10,9 +10,15 @@ import { UpdateCustomerDto } from './dto/update-customer.dto';
 export class CustomerController {
   constructor(private readonly customerService: CustomerService) {}
 
+  @MessagePattern('customer.health')
+  healthCheck() {
+    return 'Customer service is up and running';
+  }
+
   @MessagePattern('customer.create')
-  create(@Payload() createCustomerDto: CreateCustomerDto) {
-    return this.customerService.create(createCustomerDto);
+  create(@Payload() payload: { createCustomerDto: CreateCustomerDto; user: User }) {
+    const { createCustomerDto, user } = payload;
+    return this.customerService.create(createCustomerDto, user);
   }
 
   @MessagePattern('customer.find.all')
@@ -34,9 +40,9 @@ export class CustomerController {
   }
 
   @MessagePattern('customer.update')
-  update(@Payload() payload: { updateDto: UpdateCustomerDto; user: User }) {
-    const { updateDto, user } = payload;
-    return this.customerService.update(updateDto, user);
+  update(@Payload() payload: { updateCustomerDto: UpdateCustomerDto; user: User }) {
+    const { updateCustomerDto, user } = payload;
+    return this.customerService.update(updateCustomerDto, user);
   }
 
   @MessagePattern('customer.remove')
