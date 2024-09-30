@@ -27,6 +27,12 @@ export class CustomerController {
     return this.customerService.findAll(pagination, user);
   }
 
+  @MessagePattern('customer.find.all.summary')
+  findAllSummary(@Payload() payload: { pagination: PaginationDto; user: User }) {
+    const { pagination, user } = payload;
+    return this.customerService.findAllSummary(pagination, user);
+  }
+
   @MessagePattern('customer.find.one')
   findOne(@Payload() payload: { id: string; user: User }) {
     const { id, user } = payload;
@@ -37,6 +43,19 @@ export class CustomerController {
       });
 
     return this.customerService.findOne(id, user);
+  }
+
+  @MessagePattern('customer.find.one.summary')
+  findOneSummary(@Payload() payload: { id: string; user: User }) {
+    const { id, user } = payload;
+
+    if (!isCuid(id))
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: 'Invalid voucher id',
+      });
+
+    return this.customerService.findOneSummary(id, user);
   }
 
   @MessagePattern('customer.update')

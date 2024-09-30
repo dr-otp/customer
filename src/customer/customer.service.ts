@@ -42,38 +42,78 @@ export class CustomerService extends PrismaClient implements OnModuleInit {
     const isAdmin = hasRoles(user.roles, [Role.Admin]);
 
     const where = isAdmin ? {} : { deletedAt: null };
-    const total = await this.customer.count({ where });
-    const lastPage = Math.ceil(total / limit);
 
-    const data = await this.customer.findMany({
-      take: limit,
-      skip: (page - 1) * limit,
-      where,
-      orderBy: { createdAt: 'desc' },
-    });
+    // Run count and findMany queries in parallel
+    const [total, data] = await Promise.all([
+      this.customer.count({ where }),
+      this.customer.findMany({
+        take: limit,
+        skip: (page - 1) * limit,
+        where,
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+
+    const lastPage = Math.ceil(total / limit);
 
     const computedData = await this.getUsers(data);
 
     return { meta: { total, page, lastPage }, data: computedData };
   }
 
-  async findOne(id: string, user: User): Promise<Partial<Customer>> {
+  async findAllSummary(pagination: PaginationDto, user: User): Promise<ListResponse<Customer>> {
+    const { page, limit } = pagination;
     const isAdmin = hasRoles(user.roles, [Role.Admin]);
 
     const where = isAdmin ? {} : { deletedAt: null };
-    const voucher = await this.customer.findUnique({
-      where: { id, ...where },
+
+    // Run count and findMany queries in parallel
+    const [total, data] = await Promise.all([
+      this.customer.count({ where }),
+      this.customer.findMany({
+        take: limit,
+        skip: (page - 1) * limit,
+        where,
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, name: true, email: true },
+      }),
+    ]);
+
+    const lastPage = Math.ceil(total / limit);
+
+    // No need to call getUsers since only basic fields are selected
+    return { meta: { total, page, lastPage }, data };
+  }
+
+  async findOne(id: string, user: User): Promise<Partial<Customer>> {
+    const isAdmin = hasRoles(user.roles, [Role.Admin]);
+
+    const where = isAdmin ? { id } : { id, deletedAt: null };
+
+    const customer = await this.customer.findFirst({ where });
+
+    if (!customer)
+      throw new RpcException({ status: HttpStatus.NOT_FOUND, message: `Customer with id ${id} not found` });
+
+    const [computedCustomer] = await this.getUsers([customer]);
+
+    return computedCustomer;
+  }
+
+  async findOneSummary(id: string, user: User): Promise<Partial<Customer>> {
+    const isAdmin = hasRoles(user.roles, [Role.Admin]);
+
+    const where = isAdmin ? { id } : { id, deletedAt: null };
+
+    const customer = await this.customer.findFirst({
+      where,
+      select: { id: true, name: true, email: true },
     });
 
-    if (!voucher)
-      throw new RpcException({
-        status: HttpStatus.NOT_FOUND,
-        message: `Voucher with id ${id} not found`,
-      });
+    if (!customer)
+      throw new RpcException({ status: HttpStatus.NOT_FOUND, message: `Customer with id ${id} not found` });
 
-    const [computedVoucher] = await this.getUsers([voucher]);
-
-    return computedVoucher;
+    return customer;
   }
 
   async update(updateCustomerDto: UpdateCustomerDto, user: User): Promise<Partial<Customer>> {
