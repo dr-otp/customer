@@ -100,6 +100,21 @@ export class CustomerService extends PrismaClient implements OnModuleInit {
     return computedCustomer;
   }
 
+  async findOneByCode(code: number, user: User): Promise<Partial<Customer>> {
+    const isAdmin = hasRoles(user.roles, [Role.Admin]);
+
+    const where = isAdmin ? { code } : { code, deletedAt: null };
+
+    const customer = await this.customer.findFirst({ where });
+
+    if (!customer)
+      throw new RpcException({ status: HttpStatus.NOT_FOUND, message: `Customer with code ${code} not found` });
+
+    const [computedCustomer] = await this.getUsers([customer]);
+
+    return computedCustomer;
+  }
+
   async findOneSummary(id: string, user: User): Promise<Partial<Customer>> {
     const isAdmin = hasRoles(user.roles, [Role.Admin]);
 

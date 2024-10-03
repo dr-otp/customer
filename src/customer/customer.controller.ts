@@ -39,10 +39,23 @@ export class CustomerController {
     if (!isCuid(id))
       throw new RpcException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: 'Invalid voucher id',
+        message: 'Invalid customer id',
       });
 
     return this.customerService.findOne(id, user);
+  }
+
+  @MessagePattern('customer.find.one.code')
+  findOneByCode(@Payload() payload: { code: number; user: User }) {
+    const { code, user } = payload;
+
+    if (isNaN(code))
+      throw new RpcException({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: 'Invalid customer code',
+      });
+
+    return this.customerService.findOneByCode(code, user);
   }
 
   @MessagePattern('customer.find.one.summary')
