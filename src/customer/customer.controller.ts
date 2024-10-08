@@ -71,6 +71,18 @@ export class CustomerController {
     return this.customerService.findOneSummary(id, user);
   }
 
+  @MessagePattern('customer.find.many.summary')
+  findManySummary(@Payload('ids') ids: string[]) {
+    const invalidIds = ids.filter((id) => !isCuid(id));
+    if (invalidIds.length > 0)
+      throw new RpcException({
+        status: HttpStatus.BAD_REQUEST,
+        message: `Invalid customer ids: ${invalidIds.join(', ')}`,
+      });
+
+    return this.customerService.findManySummary(ids);
+  }
+
   @MessagePattern('customer.update')
   update(@Payload() payload: { updateCustomerDto: UpdateCustomerDto; user: User }) {
     const { updateCustomerDto, user } = payload;

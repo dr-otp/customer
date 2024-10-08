@@ -85,6 +85,16 @@ export class CustomerService extends PrismaClient implements OnModuleInit {
     return { meta: { total, page, lastPage }, data };
   }
 
+  async findManySummary(ids: string[]): Promise<Partial<Customer>[]> {
+    const data = await this.customer.findMany({
+      where: { deletedAt: null, id: { in: ids } },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, name: true, email: true },
+    });
+
+    return data;
+  }
+
   async findOne(id: string, user: User): Promise<Partial<Customer>> {
     const isAdmin = hasRoles(user.roles, [Role.Admin]);
 
